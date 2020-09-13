@@ -6,7 +6,7 @@
 
 Provides an uniformized way to load tool and scripts thus instead of having:
 
-``html
+```html
 
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/simple-image@latest"></script>
@@ -24,11 +24,11 @@ Provides an uniformized way to load tool and scripts thus instead of having:
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/raw@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/paragraph@latest"></script>
 
-``
+```
 
 we will have:
 
-``html
+```html
    /**
      * configure the Editor Tools before the Editor being initialized
      * @note Hack because for now we cannot have async constructors
@@ -76,14 +76,14 @@ it will be a great help to have this feature.
 
 1) Add the loader on top
 
-``html
+```html
  <script src="editor.js/plugins/script-loader/src/index.js"></script>
-``
+```
 
 2) You will have to adapt the loader as we can pass the configuration directly but wraping it into
 a function and have to add a promise support. Now we have:
 
-``html
+```html
  /**
      * To initialize the Editor, create a new instance with configuration object
      * @see docs/installation.md for mode details
@@ -124,12 +124,12 @@ a function and have to add a promise support. Now we have:
 	window.editor=editor;
     });
 
-``
+```
 
 3) Inside, new_SoSIE(configuration,custom), configuration becomes configuration()
 
-     ....
-         
+     ...js
+        
   
         let ct=new ToolConfigurator(configuration());
         
@@ -152,7 +152,7 @@ a function and have to add a promise support. Now we have:
          
          
         return editor;
-
+```
 
 ## Building the plugin
 
