@@ -28,7 +28,7 @@ Provides an uniformized way to load tool and scripts thus instead of having:
 
 we will have:
 
-```html
+```js
    /**
      * configure the Editor Tools before the Editor being initialized
      * @note Hack because for now we cannot have async constructors
