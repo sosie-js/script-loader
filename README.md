@@ -128,7 +128,7 @@ a function and have to add a promise support. Now we have:
 
 3) Inside, new_SoSIE(configuration,custom), configuration becomes configuration()
 
-     ```js
+```js
         
   
         let ct=new ToolConfigurator(configuration());
