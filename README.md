@@ -83,7 +83,7 @@ it will be a great help to have this feature.
 2) You will have to adapt the loader as we can pass the configuration directly but wraping it into
 a function and have to add a promise support. Now we have:
 
-```html
+```js
  /**
      * To initialize the Editor, create a new instance with configuration object
      * @see docs/installation.md for mode details
