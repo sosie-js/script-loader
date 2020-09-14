@@ -126,33 +126,12 @@ a function and have to add a promise support. Now we have:
 
 ```
 
-3) Inside, new_SoSIE(configurationHolder,custom),
+3) Inside, new_SoSIE(configurationHolder,custom), an extra line need to be added
 
 ```js
         //the configuration is desencapsulated with the good classes context 
         let configuration=configurationHolder(); 
         
-        let ct=new ToolConfigurator(configuration);
-        
-        //This will avoid to hardcode sanitize rules in Paragraph tool.
-        //and use our rules defined in paragraph.text.allowedTags
-        //to avoid washing style tags deliberately by default (p tag is mandatory!)
-        await ct.awaitFinished('Paragraph',500);
-        
-        //checkConfigFinished('Paragraph');
-        var editor=new SoSIE(configuration,custom);
-         
-        /**
-        * Saving example
-        */
-        saveButton.addEventListener('click', function () {
-            editor.save().then((savedData) => {
-                cPreview.show(savedData, document.getElementById("output"));
-            });
-        });
-         
-         
-        return editor;
 ```
 
 ## Building the plugin
