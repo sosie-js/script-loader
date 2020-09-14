@@ -3,10 +3,11 @@
     *
     * @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
     * @author sos-productions.com
-    * @version 1.0
+    * @version 2.0
     * @example await loadScripts([ "foo.js",'bar.css",...])
     * @history
-    *    1.0 (11.09.2020) - Initial version f
+    *    1.0 (11.09.2020) - Initial version 
+    *    2.0 (14.09.2020) npm support only for prod
     **/
 const SCRIPT_LOADER_MAXTIME=5000; //in ms
 
@@ -161,33 +162,7 @@ class ScriptLoader {
             this.loadScript(0);
         }
      
-     /*
-        resolveLocal() {
-            
-        let custombuild=false;//true;
-        $npm="onffline";
-        if($npm == "offline") {
-  
-            $toolscode=str_replace($npmjsdeliver,$npmlocal ,$toolscode);
-             if(custombuild) {
-                    "node_modules/@editorjs/editorjs@latest":'src/editor.js/dist/editor.js',
-                    "node_modules/editorjs-undo@latest":'src/plugins/editorjs-undo/dist/bundle.js',
-                    "node_modules/@editorjs/embed@latest",'src/plugins/embed/dist/bundle.js'
-             }else {
-                 'node_modules/@editorjs/editorjs@latest','node_modules/@editorjs/editorjs/dist/editor.js'; 
-             }
-            
-            $toolscode=pregReplaceAll('#"node_modules/(clipboard)@latest"#','"node_modules/$1/dist/$1.js"',$toolscode);
-            $toolscode=pregReplaceAll('#"node_modules/(jsondiffpatch)@latest"#','"node_modules/$1/dist/jsondiffpatch.umd.slim.js"',$toolscode); 
-            $toolscode=pregReplaceAll('#"node_modules/(highlightjs)@latest"#','"node_modules/$1/highlight.pack.min.js"',$toolscode);
-            $toolscode=pregReplaceAll('#"node_modules/(downloadjs)@latest"#','"node_modules/$1/download.min.js"',$toolscode);         
-            $toolscode=pregReplaceAll('#"node_modules/(file-saver)@latest"#','"node_modules/$1/dist/FileSaver.min.js"',$toolscode);
-            $toolscode=pregReplaceAll('#"node_modules/(xmlbuilder2)@latest"#','"node_modules/$1/lib/xmlbuilder2.min.js"',$toolscode);
-         
-            
-             toolscode=pregReplaceAll('#"node_modules/(.*)@latest"#','"node_modules/$1/dist/bundle.js"',$toolscode); 
-        }
-         //$npm="online";
+    
 
       
         
