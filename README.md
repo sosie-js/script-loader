@@ -29,14 +29,14 @@ Provides an uniformized way to load tool and scripts thus instead of having:
 we will have:
 
 ```js
-   /**
+ /**
      * configure the Editor Tools before the Editor being initialized
      * @note Hack because for now we cannot have async constructors
-     * @param {EditorConfig|string|undefined} [configuration] - user configuration
+     * @param {function} configurationHolder a function that returns user configuration {EditorConfig|string|undefined} 
      * @param {boolean] custom , if not specified use demo by default.
      * @return promise<EditorJS>
      */
-    async function new_SoSIE(configuration,custom) {
+    async function new_SoSIE(configurationHolder,custom) {
     
        ...
         
@@ -85,7 +85,7 @@ a function and have to add a promise support. Now we have:
 
 ```js
  /**
-     * To initialize the Editor, create a new instance with configuration object
+     * To initialize the Editor, create a new instance with configuration object constructor
      * @see docs/installation.md for mode details
      */
      var editor=new_SoSIE(function(){ return {
@@ -126,12 +126,13 @@ a function and have to add a promise support. Now we have:
 
 ```
 
-3) Inside, new_SoSIE(configuration,custom), configuration becomes configuration()
+3) Inside, new_SoSIE(configurationHolder,custom),
 
 ```js
+        //the configuration is desencapsulated with the good classes context 
+        let configuration=configurationHolder(); 
         
-  
-        let ct=new ToolConfigurator(configuration());
+        let ct=new ToolConfigurator(configuration);
         
         //This will avoid to hardcode sanitize rules in Paragraph tool.
         //and use our rules defined in paragraph.text.allowedTags
@@ -139,7 +140,7 @@ a function and have to add a promise support. Now we have:
         await ct.awaitFinished('Paragraph',500);
         
         //checkConfigFinished('Paragraph');
-        var editor=new SoSIE(configuration(),custom);
+        var editor=new SoSIE(configuration,custom);
          
         /**
         * Saving example
