@@ -23,9 +23,16 @@ const SCRIPT_LOADER_MAXTIME=5000; //in ms
 
 }
 
- function loadTools(tool) {
+function loadTools(tools) {
 
-    const sl = new ScriptLoader(tool,false);
+    const sl = new ScriptLoader(tools,false);
+    return sl.load();
+
+}
+
+function loadPlugins(plugins) {
+
+    const sl = new ScriptLoader(plugins,false);
     return sl.load();
 
 }
