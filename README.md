@@ -1,6 +1,6 @@
 ![](https://badgen.net/badge/SoS正/Beta/f2a) ![](https://badgen.net/badge/editor.js/v0.6.0/blue) ![](https://badgen.net/badge/plugin/v2.0/orange) 
 
-# scriptLoader Plugin to load Tools of editor.js
+# scriptLoader Plugin to load Tools, Modules and Plugins of editor.js
 
 ## Feature(s)
 
