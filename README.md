@@ -1,4 +1,4 @@
-![](https://badgen.net/badge/SoS正/Beta/f2a) ![](https://badgen.net/badge/editor.js/v2.0/blue) ![](https://badgen.net/badge/plugin/v1.0/orange) 
+![](https://badgen.net/badge/SoS正/Beta/f2a) ![](https://badgen.net/badge/editor.js/v2.0/blue) ![](https://badgen.net/badge/plugin/v2.0/orange) 
 
 # scriptLoader Plugin to load Tools of editor.js
 
@@ -40,37 +40,59 @@ we will have:
     
        ...
         
-        const nocache=false;
-        const mode='prod';
+         let mode='prod'; //dev will require browserify
+        let source='local';
+        let editorDir='editor.js';
+        
+        let target=source+':'+editorDir; 
 
         /**
         * Load Tools
         */
         await loadTools([
-            '@editorjs/header@latest',
-            '@editorjs/simple-image@latest',
-            '@editorjs/delimiter@latest',
-            '@editorjs/list@latest',
-            '@editorjs/checklist@latest',
-            '@editorjs/quote@latest',
-            '@editorjs/code@latest',
-            '@editorjs/embed@latest',
-            '@editorjs/table@latest',
-            '@editorjs/link@latest',
-            '@editorjs/warning@latest',
-            '@editorjs/marker@latest',
-            '@editorjs/inline-code@latest',
-            '@editorjs/editorjs@latest',
-            '@editorjs/paragraph@latest'
-        ],nocache,mode);
+            {'@editorjs/header@latest': ['[example/tools/header](https://github.com/editor-js/header)']}, 
+            {'@editorjs/simple-image@latest':['[example/tools/simple-image](https://github.com/editor-js/simple-image)']},
+            {'@editorjs/delimiter@latest':['[example/tools/delimiter](https://github.com/editor-js/delimiter)']}, 
+            {'@editorjs/list@latest':['[example/tools/list](https://github.com/editor-js/list)']},
+            {'@editorjs/checklist@latest':['[example/tools/checklist](https://github.com/editor-js/checklist)']},
+            {'@editorjs/quote@latest':['[example/tools/quote](https://github.com/editor-js/quote)']}, 
+            {'@editorjs/code@latest':['[example/tools/code](https://github.com/editor-js/code)']},
+            {'@editorjs/image@latest':['[example/tools/image](https://github.com/editor-js/image)']}, 
+            {'@editorjs/embed@latest':['[example/tools/embed](https://github.com/editor-js/embed)']},
+            {'@editorjs/table@latest':['[example/tools/table](https://github.com/editor-js/table)']},
+            {'@editorjs/link@latest':['[example/tools/link](https://github.com/editor-js/link)']}, 
+            {'@editorjs/warning@latest':['[example/tools/warning](https://github.com/editor-js/warning)']}, 
+            {'@editorjs/marker@latest':['[example/tools/marker](https://github.com/editor-js/marker)']},
+            {'@editorjs/inline-code@latest':[ '[example/tools/inline-code](https://github.com/editor-js/inline-code)']}, 
+            {'@editorjs/paragraph@latest':['[example/tools/paragraph](https://github.com/editor-js/paragraph)']},
+            {'@editorjs/raw@latest':['[example/tools/raw](https://github.com/editor-js/raw)']} 
+        ],nocache,mode,target);
+        
+        /**
+        * Editor core
+        */
+        mode='prod'
+        source='local';//Works only with local stored dists as we decided not to publish on npm
+        target=source+':'+editorDir;
+        await loadEditor([
+            {'sosie-js/editor.js@0.6.0':['[](https://github.com/sosie-js/editor.js)','dist/sosie.js']},
+            {'sos-productions/editor.js@next':['[src/editor.js](https://github.com/sos-productions/editor.js)','../../dist/editor.js'] }
+        ],nocache,mode,target)
+        
+    
+        /**
+        * Plugins
+        */
+         await loadPlugins([
+            {'sosie-js/script-loader@1.3.0': '[example/plugins/script-loader](https://github.com/sosie-js/script-loader)'}, //virtual , already loaded we keep a version trace here
+            {'sosie-js/embed@2.0.0': ['[example/plugins/embed](https://github.com/sosie-js/embed)',['dist/bundle.js','dist/sample.js']]},
+            {'sosie-js/tool-configurator@1.0.0':['[example/plugins/tool-configurator](https://github.com/sosie-js/tool-configurator)','dist/bundle.js']}
+        ],nocache,mode,target);
         
         ...
     }
 
 ```
-NOTE: in the near future this thing will be handled with .ini files and the support for dev submodules
-will be included. Git submodules is a pain to resfresh and add so automatizing it, so I assume
-it will be a great help to have this feature.
 
 ## Integration
 
