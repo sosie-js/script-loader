@@ -1,6 +1,6 @@
 ![](https://badgen.net/badge/SoS正/Beta/f2a) ![](https://badgen.net/badge/editor.js/v0.6.0/blue) ![](https://badgen.net/badge/plugin/v2.0/orange) 
 
-# scriptLoader Plugin to load Tools of editor.js
+# scriptLoader Plugin to load Tools, Modules and Plugins of editor.js
 
 ## Feature(s)
 
@@ -99,7 +99,7 @@ we will have:
 1) Add the loader on top
 
 ```html
- <script src="editor.js/plugins/script-loader/dist/bundle.js"></script>
+ <script src="editor.js/plugins/script-loader/src/index.js"></script>
 ```
 
 2) You will have to adapt the loader as we can pass the configuration directly but wraping it into
