@@ -9,7 +9,7 @@
     *    1.0 (11.09.2020) - Initial version 
     *    1.2 (14.09.2020) npm support only for prod
     *    1.3 (18.09.2020) - Fix version and dates, improving load functions (beta)
-    *    2.0 (22.09.2020) - Unified Load functions with getScriptLoaderFiles
+    *    2.+ (22.09.2020) - Unified Load functions with getScriptLoaderFiles + webpack
     **/
 const SCRIPT_LOADER_MAXTIME=5000; //in ms
 
@@ -86,7 +86,7 @@ function getScriptLoaderFiles(mode, type, items, sources, target) {
  * @param {string}  mode - dev or prod
  * @param {string}  target - local or remote/origin
 */
-function loadTools(tools,nocache,mode,target) {
+global.loadTools = function(tools,nocache,mode,target) {
     
     let sources= []
     let type='tool'
@@ -103,7 +103,7 @@ function loadTools(tools,nocache,mode,target) {
  * @param {string}  mode - dev or prod
  * @param {string}  target - local or remote/origin
 */
-function loadPlugins(plugins, nocache, mode, target) {
+global.loadPlugins = function(plugins, nocache, mode, target) {
 
     let sources= []
     let type='plugin'
@@ -119,7 +119,7 @@ function loadPlugins(plugins, nocache, mode, target) {
  * @param {string}  mode - dev or prod
  * @param {string}  target - local or remote/origin
 */
- function loadEditor(modules,nocache,mode, target) {
+ global.loadEditor = function(modules,nocache,mode, target) {
      
     let sources= []
     let type='editor'
@@ -136,7 +136,7 @@ function loadPlugins(plugins, nocache, mode, target) {
  * @param {boolean} nocache , if true activate the anti-cache system, disabled by default
  * @param {string}  mode - dev or prod
  **/
- function loadScripts(scripts,nocache,mode) {
+global.loadScripts = function(scripts,nocache,mode) {
     const sl = new ScriptLoader(scripts,nocache,mode);
     return sl.load(undefined);
 
@@ -244,7 +244,9 @@ class ScriptLoader {
      * */
        loadScript(i)
         {
-          /*  var script = document.createElement('script');
+          /* 
+           *!NOTE THIS DOES NOT PRODUCE ERROR when 404 html error pages
+           * var script = document.createElement('script');
             var _this=this;
             script.type = 'text/javascript';
             script.src = _this.withNoCache(_this.m_js_files[i]);
@@ -443,3 +445,5 @@ class ScriptLoader {
     }
 
 }
+
+module.exports = ScriptLoader;
