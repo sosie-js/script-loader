@@ -99,7 +99,7 @@ we will have:
 1) Add the loader on top
 
 ```html
- <script src="editor.js/plugins/script-loader/src/index.js"></script>
+ <script src="editor.js/plugins/script-loader/dist/bundle.js"></script>
 ```
 
 2) You will have to adapt the loader as we can pass the configuration directly but wraping it into
