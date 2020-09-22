@@ -8,34 +8,140 @@
     * @history
     *    1.0 (11.09.2020) - Initial version 
     *    1.2 (14.09.2020) npm support only for prod
+    *    1.3 (18.09.2020) - Fix version and dates, improving load functions (beta)
+    *    2.+ (22.09.2020) - Unified Load functions with getScriptLoaderFiles + webpack
     **/
 const SCRIPT_LOADER_MAXTIME=5000; //in ms
+
+function getScriptLoaderFiles(mode, type, items, sources, target) {
+
+    let repository, base, entries, anchor, files=[]
+  
+    items.forEach(function(item){
+        
+         if(typeof item == 'string') {
+            files.push(source+':'+item);
+        } else {
+            for (const [source, value] of Object.entries(item)) {
+                branch='master';
+                if((version = /@([\w\d\.]+)$/.exec(source)) !== null) {
+                    branch=version[1];
+                }
+                base=value;
+                repository='';
+                if(Array.isArray(value)) {
+                    if((anchor = /\[(.*?)\]\(([^\)]+)\)/.exec(value[0])) !== null) {
+                        base=anchor[1];
+                        repository=anchor[2];//github
+                    } else {
+                        base=value[0];
+                    }
+                    if(value.length ==2) {
+                        entries=value[1];
+                    } else {
+                        entries='dist/bundle.js';
+                    }
+                
+                    if((local=/^local(?:\:(.*))?/.exec(target))!== null) {
+                        
+                        if(local[1]) {
+                            reloc=local[1]+'/';
+                        }else {
+                            reloc='';
+                        }
+                            
+                        if(Array.isArray(entries)) {
+                                entries.forEach(function(entry){
+                                    if(mode == 'dev') entry=entry.replace('dist/bundle.js','src/index.js');
+                                    files.push(reloc+base+'/'+entry);
+                                });
+                        } else {
+                            if(mode == 'dev') entries=entries.replace('dist/bundle.js','src/index.js');
+                            files.push(reloc+base+'/'+entries);
+                        }
+                    } else { //remote
+                        reloc='';
+                        if(branch =='latest') {
+                                files.push(source); //npmjsdeliver
+                        }else {
+                                
+                        }
+                    }
+                    sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
+                } else {
+                
+                     console.info('Load'+type+': Virtual packet '+source);
+                }
+                
+            }
+        }
+    })   
+
+    return files;
+}
+
+/**
+ * @param {array}  files list of tools
+ * @param {boolean} nocache , if true activate the anti-cache system, disabled by default
+ * @param {string}  mode - dev or prod
+ * @param {string}  target - local or remote/origin
+*/
+global.loadTools = function(tools,nocache,mode,target) {
+    
+    let sources= []
+    let type='tool'
+    let files=getScriptLoaderFiles(mode, type, tools, sources, target);
+    const sl = new ScriptLoader(files, nocache, mode, type);
+    return sl.load(sources);
+    
+}
+
+
+/**
+ * @param {array}  files list of plugins
+ * @param {boolean} nocache , if true activate the anti-cache system, disabled by default
+ * @param {string}  mode - dev or prod
+ * @param {string}  target - local or remote/origin
+*/
+global.loadPlugins = function(plugins, nocache, mode, target) {
+
+    let sources= []
+    let type='plugin'
+    let files=getScriptLoaderFiles(mode, type, plugins, sources, target);
+    const sl = new ScriptLoader(files, nocache, mode, type);
+    return sl.load(sources);
+    
+}
+
+/**
+ * @param {array}  list of core modules
+ * @param {boolean} nocache , if true activate the anti-cache system, disabled by default
+ * @param {string}  mode - dev or prod
+ * @param {string}  target - local or remote/origin
+*/
+ global.loadEditor = function(modules,nocache,mode, target) {
+     
+    let sources= []
+    let type='editor'
+    let files=getScriptLoaderFiles(mode, type, modules, sources, target);
+    const sl = new ScriptLoader(files, nocache, mode, type);
+    return sl.load(sources);
+
+}
 
 /**
  * Helper to load script files
  * 
  * @param {array} files list of css or js files to load
+ * @param {boolean} nocache , if true activate the anti-cache system, disabled by default
+ * @param {string}  mode - dev or prod
  **/
- function loadScripts(files) {
-
-    const sl = new ScriptLoader(files,false);
-    return sl.load();
-
-}
-
-function loadTools(tools) {
-
-    const sl = new ScriptLoader(tools,false);
-    return sl.load();
+global.loadScripts = function(scripts,nocache,mode) {
+    const sl = new ScriptLoader(scripts,nocache,mode);
+    return sl.load(undefined);
 
 }
 
-function loadPlugins(plugins) {
-
-    const sl = new ScriptLoader(plugins,false);
-    return sl.load();
-
-}
 
 
 var ScriptLoaderErrors;
@@ -54,13 +160,17 @@ class ScriptLoader {
      * @constructor
      * @param {array}  files liste of files
      * @param {boolean} nocache , if true activate the anti-cache system, deulat isabled
+     * @param {string}  mode - dev or prod
+     * 
      * */
-  constructor (files,nocache,mode) {
+  constructor (files,nocache,mode, group) {
     this.files = files
     ScriptLoaderErrors = [];
     ScriptLoaderInfo = [];
     this.nocache=nocache;
+    this.sources=[];
     this.mode=mode||'prod';
+    this.group=group||'script';
   }
 
     /**
@@ -70,12 +180,12 @@ class ScriptLoader {
      * */
       static log(info)
         {
-            Array.prototype.push(ScriptLoaderInfo,info);
+            ScriptLoaderInfo.push(info);
         }
         
       static error(error)
         {
-            Array.prototype.push(ScriptLoaderErrors,error);
+            ScriptLoaderErrors.push(error);
         }
         
     /**
@@ -121,6 +231,11 @@ class ScriptLoader {
             _this.m_head.appendChild(link);
         }
         
+
+ 
+
+
+
         
     /**
      * Load as the js file by its index
@@ -129,7 +244,9 @@ class ScriptLoader {
      * */
        loadScript(i)
         {
-            var script = document.createElement('script');
+          /* 
+           *!NOTE THIS DOES NOT PRODUCE ERROR when 404 html error pages
+           * var script = document.createElement('script');
             var _this=this;
             script.type = 'text/javascript';
             script.src = _this.withNoCache(_this.m_js_files[i]);
@@ -152,7 +269,70 @@ class ScriptLoader {
                 loadNextScript();
             };
             //_this.log('Loading script "' + _this.m_js_files[i] + '".');
-            _this.m_head.appendChild(script);
+            _this.m_head.appendChild(script);*/
+           var _this=this;
+           let url=_this.withNoCache(_this.m_js_files[i]);
+            var loadNextScript = function ()
+            {
+                if (i + 1 < _this.m_js_files.length)
+                {
+                    _this.loadScript(i + 1);
+                }
+            };
+	   var oXmlHttp = new XMLHttpRequest();            
+	 	oXmlHttp.withCredentials = false;
+		oXmlHttp.responseType = 'text';
+		oXmlHttp.open('GET', url, true);
+		oXmlHttp.onload = function () {
+
+		  if( oXmlHttp.status >= 200 || oXmlHttp.status == XMLHttpRequest.DONE ) {
+
+		    //var x = oXmlHttp.getAllResponseHeaders();
+		    //console.log(x);
+
+		    if(oXmlHttp.responseText !== null) {
+
+		        var oHead = document.getElementsByTagName('HEAD').item(0);
+		        var oScript = document.createElement("script");
+		            oScript.language = "javascript";
+		            oScript.type = "text/javascript";
+		            oScript.defer = true;
+		            oScript.text = oXmlHttp.responseText;
+		            oHead.appendChild(oScript);
+                        _this.count=_this.count-1;
+                        loadNextScript();
+		    }
+
+		  } 
+
+		}
+
+		oXmlHttp.send();
+                oXmlHttp.onreadystatechange = function() {
+                    let source, branch;
+                    if(this.readyState == this.HEADERS_RECEIVED) {
+                        //404 triggers an html page seen as normal so we have to intercept it
+                        var contentType = oXmlHttp.getResponseHeader("Content-Type");
+                        //console.log(url,contentType);
+                        if (!(/^(application\/javascript)/.test(contentType))) { //charset=utf-8
+                           oXmlHttp.abort();
+                            ScriptLoader.error('Error loading '+_this.group+' file "' + url + '" ('+contentType+').')
+                            
+                            if(_this.sources) {
+                              //console.info();
+                                source=_this.sources[i]
+                                if(/editor.js$/.test(source.base)) {
+                                    console.info('To fix it, from editor.js do a "git submodule add '+branch+'-f '+source.repository+' src/editor.js" and then ./build and copy src/editor.js/dist/* under editor.js/dist/');
+                                } else {   
+                                    branch=(source.branch=='latest') ? '' : '-b '+source.branch+' ';
+                                    console.info('To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
+                                }
+                            }
+
+                            loadNextScript();
+                        }
+                    }
+                }	    
         }
         
         
@@ -224,7 +404,9 @@ class ScriptLoader {
 /**
  * Main function to load it all
  */
-    load () {
+    load (sources) {
+        
+        this.sources=sources;
         
         return new Promise(async (resolve, reject) => {
         
@@ -254,7 +436,7 @@ class ScriptLoader {
             }
            
             if(this.count) {
-                reject(new Error("ScriptLoader: "+ ScriptLoaderErrors.join('\n')))
+                reject(new Error("ScriptLoader failed "+this.count+" time(s): "+ ScriptLoaderErrors.join('\n')))
             }else {    
                 resolve()
             }
@@ -263,3 +445,5 @@ class ScriptLoader {
     }
 
 }
+
+module.exports = ScriptLoader;
