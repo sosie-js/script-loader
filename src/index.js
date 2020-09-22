@@ -3,11 +3,11 @@
     *
     * @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
     * @author sos-productions.com
-    * @version 2.0
+    * @version 1.2
     * @example await loadScripts([ "foo.js",'bar.css",...])
     * @history
     *    1.0 (11.09.2020) - Initial version 
-    *    2.0 (14.09.2020) npm support only for prod
+    *    1.2 (14.09.2020) npm support only for prod
     **/
 const SCRIPT_LOADER_MAXTIME=5000; //in ms
 
