@@ -1,6 +1,6 @@
 {
   "name": "@sosie-js/script-loader",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "keywords": [
     "script loader",
     "script",
@@ -9,9 +9,9 @@
     "editor.js",
     "editorjs"
   ],
-  "description": "List Tool for Editor.js",
+  "description": "scriptLoader Plugin to load Tools, Modules and Plugins of editor.js",
   "license": "MIT",
-  "repository": "https://github.com/editor-js/list",
+  "repository": "https://github.com/sosie-js/script-loader",
   "main": "./dist/bundle.js",
   "scripts": {
     "build": "webpack --mode production",
@@ -34,6 +34,7 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "babel-polyfill": "^6.26.0"
+    "babel-polyfill": "^6.26.0",
+    "parse-github-url": "^1.0.2"
   }
 }

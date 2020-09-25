@@ -3,19 +3,87 @@
     *
     * @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
     * @author sos-productions.com
-    * @version 1.2
+    * @version 2.1
     * @example await loadScripts([ "foo.js",'bar.css",...])
     * @history
     *    1.0 (11.09.2020) - Initial version 
     *    1.2 (14.09.2020) npm support only for prod
     *    1.3 (18.09.2020) - Fix version and dates, improving load functions (beta)
-    *    2.+ (22.09.2020) - Unified Load functions with getScriptLoaderFiles + webpack
+    *    2.0 (22.09.2020) - Unified Load functions with getScriptLoaderFiles + webpack
+    *    2.1 (23.09.2020) - Support for branch in github urls
     **/
+
+var parseGithubUrl = require('parse-github-url');
+
 const SCRIPT_LOADER_MAXTIME=5000; //in ms
+
+
+function resolveScriptSourceToFile(files, mode, type, sources, source, value, target) {
+    
+    let repository, base, branch, entries, git, anchor;
+    
+    branch='master';
+    if((version = /@([\w\d\.]+)$/.exec(source)) !== null) {
+        branch=version[1];
+    }
+    base=value;
+    repository='';
+    if(Array.isArray(value)) {
+        if((anchor = /\[(.*?)\]\(([^\)]+)\)/.exec(value[0])) !== null) {
+            base=anchor[1];
+            repository=anchor[2];//github
+                //Extract repository, branch from github url
+            //<protocol:https>//<host:github.com>/<repo>/tree:<branch>
+            git=parseGithubUrl(repository)
+            repository=git.protocol+'//'+git.host+'/'+git.repo
+            branch=git.branch;
+            //console.log(repository,branch);
+        } else {
+            base=value[0];
+        }
+        if(value.length ==2) {
+            entries=value[1];
+        } else {
+            entries='dist/bundle.js';
+        }
+    
+        if((local=/^local(?:\:(.*))?/.exec(target))!== null) {
+            
+            if(local[1]) {
+                reloc=local[1]+'/';
+            }else {
+                reloc='';
+            }
+                
+            if(Array.isArray(entries)) {
+                    entries.forEach(function(entry){
+                        if(mode == 'dev') entry=entry.replace('dist/bundle.js','src/index.js');
+                        files.push(reloc+base+'/'+entry);
+                    });
+            } else {
+                if(mode == 'dev') entries=entries.replace('dist/bundle.js','src/index.js');
+                files.push(reloc+base+'/'+entries);
+            }
+        } else { //remote
+            reloc='';
+            if(branch =='latest') {
+                    files.push(source); //npmjsdeliver
+            }else {
+                    
+            }
+        }
+        sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
+    } else {
+    
+            console.info('Load'+type+': Virtual packet '+source);
+    }
+}
+
+
 
 function getScriptLoaderFiles(mode, type, items, sources, target) {
 
-    let repository, base, entries, anchor, files=[]
+    let files=[]
   
     items.forEach(function(item){
         
@@ -23,56 +91,7 @@ function getScriptLoaderFiles(mode, type, items, sources, target) {
             files.push(source+':'+item);
         } else {
             for (const [source, value] of Object.entries(item)) {
-                branch='master';
-                if((version = /@([\w\d\.]+)$/.exec(source)) !== null) {
-                    branch=version[1];
-                }
-                base=value;
-                repository='';
-                if(Array.isArray(value)) {
-                    if((anchor = /\[(.*?)\]\(([^\)]+)\)/.exec(value[0])) !== null) {
-                        base=anchor[1];
-                        repository=anchor[2];//github
-                    } else {
-                        base=value[0];
-                    }
-                    if(value.length ==2) {
-                        entries=value[1];
-                    } else {
-                        entries='dist/bundle.js';
-                    }
-                
-                    if((local=/^local(?:\:(.*))?/.exec(target))!== null) {
-                        
-                        if(local[1]) {
-                            reloc=local[1]+'/';
-                        }else {
-                            reloc='';
-                        }
-                            
-                        if(Array.isArray(entries)) {
-                                entries.forEach(function(entry){
-                                    if(mode == 'dev') entry=entry.replace('dist/bundle.js','src/index.js');
-                                    files.push(reloc+base+'/'+entry);
-                                });
-                        } else {
-                            if(mode == 'dev') entries=entries.replace('dist/bundle.js','src/index.js');
-                            files.push(reloc+base+'/'+entries);
-                        }
-                    } else { //remote
-                        reloc='';
-                        if(branch =='latest') {
-                                files.push(source); //npmjsdeliver
-                        }else {
-                                
-                        }
-                    }
-                    sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
-                } else {
-                
-                     console.info('Load'+type+': Virtual packet '+source);
-                }
-                
+                resolveScriptSourceToFile(files, mode, type, sources, source, value, target);
             }
         }
     })   
@@ -209,7 +228,7 @@ class ScriptLoader {
      * 
      * @param {string} filename, the full url to the css file
      * */
-    loadStyle(filename)
+    loadStyle(fileentry)
         {
         
             // HTMLLinkElement
@@ -217,6 +236,9 @@ class ScriptLoader {
             var _this=this;
             link.rel = "stylesheet";
             link.type = "text/css";
+            var filedef=fileentry.split(':');
+            var sourceindex=filedef[0];
+            var filename=filedef[1];
             link.href = _this.withNoCache(filename);
             //ScriptLoader.log('Loading style ' + filename);
             link.onload = function ()
@@ -227,6 +249,15 @@ class ScriptLoader {
             link.onerror = function ()
             {
                 ScriptLoader.error('Error loading style "' + filename + '".');
+                    if(_this.sources) {
+                              //console.info();
+                           let source=_this.sources[sourceindex]
+                              
+                            let branch=(source.branch=='latest') ? '' : '-b '+source.branch+' ';
+                                    console.info('To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
+                                
+                    }
+
             };
             _this.m_head.appendChild(link);
         }
@@ -377,11 +408,12 @@ class ScriptLoader {
             {
                 if (endsWith(files[i], ".css"))
                 {
-                     if(this.mode == 'prod') {
+                     this.m_css_files.push(i+':'+files[i]); //keep i to get a link with sources
+                    /* if(this.mode == 'prod') {
                         this.m_css_files.push(npmjsdeliver+files[i]);
                      } else {
                         this.m_css_files.push(npmlocal+files[i]);
-                     }
+                     }*/
                 }
                 else if (endsWith(files[i], ".js"))
                 {
