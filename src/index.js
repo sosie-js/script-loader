@@ -3,14 +3,15 @@
     *
     * @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
     * @author sos-productions.com
-    * @version 2.1
+    * @version 2.2
     * @example await loadScripts([ "foo.js",'bar.css",...])
     * @history
     *    1.0 (11.09.2020) - Initial version 
-    *    1.2 (14.09.2020) npm support only for prod
+    *    1.2 (14.09.2020) - npm support only for prod
     *    1.3 (18.09.2020) - Fix version and dates, improving load functions (beta)
     *    2.0 (22.09.2020) - Unified Load functions with getScriptLoaderFiles + webpack
     *    2.1 (23.09.2020) - Support for branch in github urls
+    *    2.2 (25.09.2020) - resolveScriptSourceToFile added with better source support (works for css too)
     **/
 
 var parseGithubUrl = require('parse-github-url');
@@ -20,7 +21,7 @@ const SCRIPT_LOADER_MAXTIME=5000; //in ms
 
 function resolveScriptSourceToFile(files, mode, type, sources, source, value, target) {
     
-    let repository, base, branch, entries, git, anchor;
+    let repository, base, branch, entries, git, anchor, file;
     
     branch='master';
     if((version = /@([\w\d\.]+)$/.exec(source)) !== null) {
@@ -58,21 +59,30 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
             if(Array.isArray(entries)) {
                     entries.forEach(function(entry){
                         if(mode == 'dev') entry=entry.replace('dist/bundle.js','src/index.js');
-                        files.push(reloc+base+'/'+entry);
+                        if(files != null) {
+                            files.push(reloc+base+'/'+entry);
+                            sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
+                        }
                     });
             } else {
                 if(mode == 'dev') entries=entries.replace('dist/bundle.js','src/index.js');
-                files.push(reloc+base+'/'+entries);
+                if(files != null) {
+                    files.push(reloc+base+'/'+entries);
+                    sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
+                }
             }
         } else { //remote
             reloc='';
             if(branch =='latest') {
-                    files.push(source); //npmjsdeliver
+                    if(files != null) {
+                        files.push(source); //npmjsdeliver
+                        sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
+                    }
             }else {
-                    
+                    //not supported
             }
         }
-        sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
+        
     } else {
     
             console.info('Load'+type+': Virtual packet '+source);
@@ -236,15 +246,18 @@ class ScriptLoader {
             var _this=this;
             link.rel = "stylesheet";
             link.type = "text/css";
+          
             var filedef=fileentry.split(':');
             var sourceindex=filedef[0];
             var filename=filedef[1];
+            console.log('LoadStyle('+sourceindex+'):'+fileentry);
             link.href = _this.withNoCache(filename);
             //ScriptLoader.log('Loading style ' + filename);
             link.onload = function ()
             {
                 //ScriptLoader.log('Loaded style "' + filename + '".');
                 _this.count=_this.count-1;
+                
             };
             link.onerror = function ()
             {
@@ -254,11 +267,12 @@ class ScriptLoader {
                            let source=_this.sources[sourceindex]
                               
                             let branch=(source.branch=='latest') ? '' : '-b '+source.branch+' ';
-                                    console.info('To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
+                                    console.info('loadStyle:To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
                                 
                     }
 
             };
+
             _this.m_head.appendChild(link);
         }
         
@@ -301,8 +315,17 @@ class ScriptLoader {
             };
             //_this.log('Loading script "' + _this.m_js_files[i] + '".');
             _this.m_head.appendChild(script);*/
-           var _this=this;
-           let url=_this.withNoCache(_this.m_js_files[i]);
+          var _this=this;
+           let fileentry=_this.m_js_files[i];
+           
+            var filedef=fileentry.split(':');
+            var sourceindex=filedef[0];
+            var filename=filedef[1];
+            
+            console.log('LoadScript('+sourceindex+' vs '+i+'/'+_this.m_js_files.length+'):'+fileentry);
+     
+           
+           let url=_this.withNoCache(filename);
             var loadNextScript = function ()
             {
                 if (i + 1 < _this.m_js_files.length)
@@ -351,12 +374,12 @@ class ScriptLoader {
                             
                             if(_this.sources) {
                               //console.info();
-                                source=_this.sources[i]
+                                source=_this.sources[sourceindex]
                                 if(/editor.js$/.test(source.base)) {
-                                    console.info('To fix it, from editor.js do a "git submodule add '+branch+'-f '+source.repository+' src/editor.js" and then ./build and copy src/editor.js/dist/* under editor.js/dist/');
+                                    console.info('loadScript:To fix it, from editor.js do a "git submodule add '+branch+'-f '+source.repository+' src/editor.js" and then ./build and copy src/editor.js/dist/* under editor.js/dist/');
                                 } else {   
                                     branch=(source.branch=='latest') ? '' : '-b '+source.branch+' ';
-                                    console.info('To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
+                                    console.info('loadScript: To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
                                 }
                             }
 
@@ -408,7 +431,7 @@ class ScriptLoader {
             {
                 if (endsWith(files[i], ".css"))
                 {
-                     this.m_css_files.push(i+':'+files[i]); //keep i to get a link with sources
+                     this.m_css_files.push(i+':'+files[i]); //i to keep a link with sources
                     /* if(this.mode == 'prod') {
                         this.m_css_files.push(npmjsdeliver+files[i]);
                      } else {
@@ -417,18 +440,19 @@ class ScriptLoader {
                 }
                 else if (endsWith(files[i], ".js"))
                 {
-                    this.m_js_files.push(files[i]);
+                    this.m_js_files.push(i+':'+files[i]);
                 }
                 else if (endsWith(files[i], "@latest"))
                 {
                     if(this.mode == 'prod') {
-                        this.m_js_files.push(npmjsdeliver+files[i]);
+                        this.m_js_files.push(i+':'+npmjsdeliver+files[i]);
                     }else {
-                        this.m_js_files.push(npmlocal+files[i]);
+                        this.m_js_files.push(i+':'+npmlocal+files[i]);
                     }
                 }
                 else
                     ScriptLoader.log('Error unknown filetype "' + files[i] + '".');
+               
             }    
          
      }
