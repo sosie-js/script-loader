@@ -1,4 +1,4 @@
-![](https://badgen.net/badge/SoS正/Beta/f2a) ![](https://badgen.net/badge/editor.js/v0.6.0/blue) ![](https://badgen.net/badge/plugin/v2.2.0/orange) 
+![](https://badgen.net/badge/SoS正/Beta/f2a) ![](https://badgen.net/badge/editor.js/v0.7.0/blue) ![](https://badgen.net/badge/plugin/v2.2.0/orange) 
 
 # scriptLoader Plugin to load Tools, Modules and Plugins of editor.js
 
