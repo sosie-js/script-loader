@@ -75,7 +75,7 @@ we will have:
         source='local';//Works only with local stored dists as we decided not to publish on npm
         target=source+':'+editorDir;
         await loadEditor([
-            {'sosie-js/editor.js@0.6.0':['[](https://github.com/sosie-js/editor.js)','dist/sosie.js']},
+            {'sosie-js/editor.js@0.7.0':['[](https://github.com/sosie-js/editor.js)','dist/sosie.js']},
             {'sos-productions/editor.js@next':['[src/editor.js](https://github.com/sos-productions/editor.js)','../../dist/editor.js'] }
         ],nocache,mode,target)
         
@@ -84,7 +84,7 @@ we will have:
         * Plugins
         */
          await loadPlugins([
-            {'sosie-js/script-loader@2.0.0': '[example/plugins/script-loader](https://github.com/sosie-js/script-loader)'}, //virtual , already loaded we keep a version trace here
+            {'sosie-js/script-loader@2.2.0': '[example/plugins/script-loader](https://github.com/sosie-js/script-loader)'}, //virtual , already loaded we keep a version trace here
             {'sosie-js/embed@2.0.0': ['[example/plugins/embed](https://github.com/sosie-js/embed)',['dist/bundle.js','dist/sample.js']]},
             {'sosie-js/tool-configurator@1.0.0':['[example/plugins/tool-configurator](https://github.com/sosie-js/tool-configurator)','dist/bundle.js']}
         ],nocache,mode,target);
@@ -99,7 +99,7 @@ we will have:
 1) Add the loader on top
 
 ```html
- <script src="editor.js/plugins/script-loader/src/index.js"></script>
+ <script src="editor.js/plugins/script-loader/dist/build.js"></script>
 ```
 
 2) You will have to adapt the loader as we can pass the configuration directly but wraping it into
