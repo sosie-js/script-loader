@@ -27,18 +27,19 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
     if((version = /@([\w\d\.]+)$/.exec(source)) !== null) {
         branch=version[1];
     }
+    console.log(source,branch)
     base=value;
     repository='';
     if(Array.isArray(value)) {
         if((anchor = /\[(.*?)\]\(([^\)]+)\)/.exec(value[0])) !== null) {
             base=anchor[1];
             repository=anchor[2];//github
-                //Extract repository, branch from github url
+            //Extract repository, branch from github url
             //<protocol:https>//<host:github.com>/<repo>/tree:<branch>
             git=parseGithubUrl(repository)
             repository=git.protocol+'//'+git.host+'/'+git.repo
-            branch=git.branch;
-            //console.log(repository,branch);
+            if((branch=='master')||(branch=='latest'))  branch=git.branch;
+            console.log(repository,branch);
         } else {
             base=value[0];
         }
@@ -61,6 +62,7 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
                         if(mode == 'dev') entry=entry.replace('dist/bundle.js','src/index.js');
                         if(files != null) {
                             files.push(reloc+base+'/'+entry);
+                             console.log('entries.forEach',{repository:repository, branch:branch, reloc:reloc,base: base})
                             sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                         }
                     });
@@ -68,6 +70,7 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
                 if(mode == 'dev') entries=entries.replace('dist/bundle.js','src/index.js');
                 if(files != null) {
                     files.push(reloc+base+'/'+entries);
+                     console.log('single',{repository:repository, branch:branch, reloc:reloc,base: base})
                     sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                 }
             }
@@ -76,6 +79,7 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
             if(branch =='latest') {
                     if(files != null) {
                         files.push(source); //npmjsdeliver
+                         console.log('npmjsdeliver',{repository:repository, branch:branch, reloc:reloc,base: base})
                         sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                     }
             }else {
