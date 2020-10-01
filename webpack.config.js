@@ -27,7 +27,7 @@ module.exports = (env, argv) => {
 
 
     return  {
-    entry: [ 'babel-polyfill', './src/index.js'],
+    entry: [ 'babel-polyfill', 'parse-github-url', './src/index.js'],
     module: {
         rules: [
         {
@@ -67,7 +67,7 @@ module.exports = (env, argv) => {
       }),
 
       new webpack.BannerPlugin({
-        banner: `scriptloader plugin\n\n@version ${VERSION}\n\n@licence Apache-2.0\n@author SoSIE <https://sosie.sos-productions.com>`,
+        banner: `scriptloader plugin\n\n@version ${VERSION}\n\n@licence MIT\n@author SoSIE <https://sosie.sos-productions.com>`,
       }),
      ],
     output: {
