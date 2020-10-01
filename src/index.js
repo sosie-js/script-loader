@@ -3,7 +3,7 @@
     *
     * @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
     * @author sos-productions.com
-    * @version 2.2
+    * @version 2.3
     * @example await loadScripts([ "foo.js",'bar.css",...])
     * @history
     *    1.0 (11.09.2020) - Initial version 
@@ -12,6 +12,7 @@
     *    2.0 (22.09.2020) - Unified Load functions with getScriptLoaderFiles + webpack
     *    2.1 (23.09.2020) - Support for branch in github urls
     *    2.2 (25.09.2020) - resolveScriptSourceToFile added with better source support (works for css too)
+    *    2.3 (01.10.2020) - nocache can be forced locally using # such as {'#user/plugin@version':[...]}
     **/
 
 var parseGithubUrl = require('parse-github-url');
@@ -220,11 +221,13 @@ class ScriptLoader {
     /**
      * Append an anti cache to url if active
      * 
-     * @param {string} filename, the full url to the css file
+     * @param {String} filename, the full url to the css file
+     * @param {Boolean} cache - overiddes this.nocache if set to true
      * */
-  withNoCache(filename)
+  withNoCache(filename, nocache)
         {
-            if(this.nocache) {
+            if(this.nocache||nocache) {
+                console.info('Nocache for '+filename);
                 if (filename.indexOf("?") === -1)
                     filename += "?no_cache=" + new Date().getTime();
                 else
@@ -236,7 +239,7 @@ class ScriptLoader {
     /**
      * Load as Stylesheet CSS file
      * 
-     * @param {string} filename, the full url to the css file
+     * @param {String} filename, the full url to the css file
      * */
     loadStyle(fileentry)
         {
@@ -321,11 +324,15 @@ class ScriptLoader {
             var filedef=fileentry.split(':');
             var sourceindex=filedef[0];
             var filename=filedef[1];
-            
-            //console.log('LoadScript('+sourceindex+' vs '+i+'/'+_this.m_js_files.length+'):'+fileentry);
-     
            
-           let url=_this.withNoCache(filename);
+            let source, nocache=false;
+            if(_this.sources) {
+                 source=_this.sources[sourceindex]; 
+                 nocache=/^#/.test(source)
+            }
+            
+           let url=_this.withNoCache(filename, nocache);
+           
             var loadNextScript = function ()
             {
                 if (i + 1 < _this.m_js_files.length)
@@ -372,9 +379,9 @@ class ScriptLoader {
                            oXmlHttp.abort();
                             ScriptLoader.error('Error loading '+_this.group+' file "' + url + '" ('+contentType+').')
                             
-                            if(_this.sources) {
+                            if(source) {
                               //console.info();
-                                source=_this.sources[sourceindex]
+                                //source=_this.sources[sourceindex] //.replace(/^#/,"")
                                 if(/editor.js$/.test(source.base)) {
                                     console.info('loadScript:To fix it, from editor.js do a "git submodule add '+branch+'-f '+source.repository+' src/editor.js" and then ./build and copy src/editor.js/dist/* under editor.js/dist/');
                                 } else {   
