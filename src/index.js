@@ -3,7 +3,7 @@
     *
     * @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
     * @author sos-productions.com
-    * @version 2.3
+    * @version 3.0
     * @example await loadScripts([ "foo.js",'bar.css",...])
     * @history
     *    1.0 (11.09.2020) - Initial version 
@@ -13,6 +13,7 @@
     *    2.1 (23.09.2020) - Support for branch in github urls
     *    2.2 (25.09.2020) - resolveScriptSourceToFile added with better source support (works for css too)
     *    2.3 (01.10.2020) - nocache can be forced locally using # such as {'#user/plugin@version':[...]}
+    *    3.0 (04.10.2020) - currentScript and resolvePathname support
     **/
 
 var parseGithubUrl = require('parse-github-url');
@@ -331,6 +332,25 @@ class ScriptLoader {
                  nocache=/^#/.test(source)
             }
             
+            //Extracted from https://gist.github.com/Yaffle/1088850
+            //maybe https://github.com/webcomponents/polyfills/blob/master/packages/url/url.js
+           function resolvePathname(pathname) {
+                var output = [];
+                pathname.replace(/^(\.\.?(\/|$))+/, "")
+                    .replace(/\/(\.(\/|$))+/g, "/")
+                    .replace(/\/\.\.$/, "/../")
+                    .replace(/\/?[^\/]*/g, function (p) {
+                    if (p === "/..") {
+                        output.pop();
+                    } else {
+                        output.push(p);
+                    }
+                    });
+                pathname = output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
+                return pathname;
+           }
+            
+            
            let url=_this.withNoCache(filename, nocache);
            
             var loadNextScript = function ()
@@ -340,9 +360,13 @@ class ScriptLoader {
                     _this.loadScript(i + 1);
                 }
             };
+            
+       
+            
 	   var oXmlHttp = new XMLHttpRequest();            
 	 	oXmlHttp.withCredentials = false;
 		oXmlHttp.responseType = 'text';
+                url=resolvePathname(url);
 		oXmlHttp.open('GET', url, true);
 		oXmlHttp.onload = function () {
 
@@ -358,7 +382,7 @@ class ScriptLoader {
 		            oScript.language = "javascript";
 		            oScript.type = "text/javascript";
 		            oScript.defer = true;
-		            oScript.text = oXmlHttp.responseText;
+		            oScript.text = oXmlHttp.responseText.replace('${currentScript}',url);
 		            oHead.appendChild(oScript);
                         _this.count=_this.count-1;
                         loadNextScript();
