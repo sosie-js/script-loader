@@ -3,7 +3,7 @@
     *
     * @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
     * @author sos-productions.com
-    * @version 3.0
+    * @version 3.1
     * @example await loadScripts([ "foo.js",'bar.css",...])
     * @history
     *    1.0 (11.09.2020) - Initial version 
@@ -13,7 +13,8 @@
     *    2.1 (23.09.2020) - Support for branch in github urls
     *    2.2 (25.09.2020) - resolveScriptSourceToFile added with better source support (works for css too)
     *    2.3 (01.10.2020) - nocache can be forced locally using # such as {'#user/plugin@version':[...]}
-    *    3.0 (04.10.2020) - currentScript and resolvePathname support
+    *    3.0 (04.10.2020) - currentScript and resolvePathname support 
+    *    3.1 (15.10.2020) - resolvePathname exception for string path with ../
     **/
 
 var parseGithubUrl = require('parse-github-url');
@@ -50,6 +51,13 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
             entries='dist/bundle.js';
         }
     
+       function getLocalFilepath(reloc, base, entry ) {
+           var file = reloc+base+'/'+entry;
+           console.log([reloc, base, '/',entry]);
+           return file;
+       }
+    
+    
         if((local=/^local(?:\:(.*))?/.exec(target))!== null) {
             
             if(local[1]) {
@@ -62,14 +70,14 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
                     entries.forEach(function(entry){
                         if(mode == 'dev') entry=entry.replace('dist/bundle.js','src/index.js');
                         if(files != null) {
-                            files.push(reloc+base+'/'+entry);
+                            files.push(getLocalFilepath(reloc,base,entry));
                             sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                         }
                     });
             } else {
                 if(mode == 'dev') entries=entries.replace('dist/bundle.js','src/index.js');
                 if(files != null) {
-                    files.push(reloc+base+'/'+entries);
+                    files.push(getLocalFilepath(reloc,base,entries));
                     sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                 }
             }
@@ -280,11 +288,6 @@ class ScriptLoader {
             _this.m_head.appendChild(link);
         }
         
-
- 
-
-
-
         
     /**
      * Load as the js file by its index
@@ -319,23 +322,27 @@ class ScriptLoader {
             };
             //_this.log('Loading script "' + _this.m_js_files[i] + '".');
             _this.m_head.appendChild(script);*/
-          var _this=this;
+           var _this=this;
            let fileentry=_this.m_js_files[i];
            
             var filedef=fileentry.split(':');
             var sourceindex=filedef[0];
             var filename=filedef[1];
            
+
             let source, nocache=false;
             if(_this.sources) {
                  source=_this.sources[sourceindex]; 
                  nocache=/^#/.test(source)
             }
             
-            //Extracted from https://gist.github.com/Yaffle/1088850
-            //maybe https://github.com/webcomponents/polyfills/blob/master/packages/url/url.js
+            //Extracted from https://gist.github.com/Yaffle/1088850 and 
+            //add an exception for ../ as pathname normaly starts with / 
            function resolvePathname(pathname) {
                 var output = [];
+                
+                var h,head=(h=/^(\.\.\/)/.exec(pathname)) ? h[1] : '';
+                
                 pathname.replace(/^(\.\.?(\/|$))+/, "")
                     .replace(/\/(\.(\/|$))+/g, "/")
                     .replace(/\/\.\.$/, "/../")
@@ -346,7 +353,7 @@ class ScriptLoader {
                         output.push(p);
                     }
                     });
-                pathname = output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
+                pathname = head + output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
                 return pathname;
            }
             
