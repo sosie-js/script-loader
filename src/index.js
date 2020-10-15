@@ -14,7 +14,7 @@
     *    2.2 (25.09.2020) - resolveScriptSourceToFile added with better source support (works for css too)
     *    2.3 (01.10.2020) - nocache can be forced locally using # such as {'#user/plugin@version':[...]}
     *    3.0 (04.10.2020) - currentScript and resolvePathname support 
-    *    3.1 (15.10.2020) - resolvePathname exception for string path with ../
+    *    3.1 (15.10.2020) - getAbsoluteFilepath to fix resolvePathname exception for string starting with ../
     **/
 
 var parseGithubUrl = require('parse-github-url');
@@ -51,10 +51,31 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
             entries='dist/bundle.js';
         }
     
-       function getLocalFilepath(reloc, base, entry ) {
-           var file = reloc+base+'/'+entry;
-           console.log([reloc, base, '/',entry]);
-           return file;
+       function getAbsoluteFilepath(reloc, base, sep, entry ) {
+         
+            //Extracted from https://gist.github.com/Yaffle/1088850 and 
+            //add an exception for ../ as pathname normaly starts with / 
+           function resolvePathname(pathname) {
+                var output = [];
+                
+                var h,head=(h=/^(\.\.\/)/.exec(pathname)) ? h[1] : '';
+                
+                pathname.replace(/^(\.\.?(\/|$))+/, "")
+                    .replace(/\/(\.(\/|$))+/g, "/")
+                    .replace(/\/\.\.$/, "/../")
+                    .replace(/\/?[^\/]*/g, function (p) {
+                    if (p === "/..") {
+                        output.pop();
+                    } else {
+                        output.push(p);
+                    }
+                    });
+                pathname = head + output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
+                return pathname;
+           }
+            
+         
+           return resolvePathname([reloc, base, sep, entry].join(''));
        }
     
     
@@ -70,14 +91,14 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
                     entries.forEach(function(entry){
                         if(mode == 'dev') entry=entry.replace('dist/bundle.js','src/index.js');
                         if(files != null) {
-                            files.push(getLocalFilepath(reloc,base,entry));
+                            files.push(getAbsoluteFilepath(reloc, base, '/', entry));
                             sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                         }
                     });
             } else {
                 if(mode == 'dev') entries=entries.replace('dist/bundle.js','src/index.js');
                 if(files != null) {
-                    files.push(getLocalFilepath(reloc,base,entries));
+                    files.push(getAbsoluteFilepath(reloc, base, '/', entries));
                     sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                 }
             }
@@ -85,7 +106,7 @@ function resolveScriptSourceToFile(files, mode, type, sources, source, value, ta
             reloc='';
             if(branch =='latest') {
                     if(files != null) {
-                        files.push(source); //npmjsdeliver
+                        files.push(getAbsoluteFilepath(source, '', '', '')); //npmjsdeliver
                         sources.push({repository:repository, branch:branch, reloc:reloc,base: base});
                     }
             }else {
@@ -336,28 +357,6 @@ class ScriptLoader {
                  nocache=/^#/.test(source)
             }
             
-            //Extracted from https://gist.github.com/Yaffle/1088850 and 
-            //add an exception for ../ as pathname normaly starts with / 
-           function resolvePathname(pathname) {
-                var output = [];
-                
-                var h,head=(h=/^(\.\.\/)/.exec(pathname)) ? h[1] : '';
-                
-                pathname.replace(/^(\.\.?(\/|$))+/, "")
-                    .replace(/\/(\.(\/|$))+/g, "/")
-                    .replace(/\/\.\.$/, "/../")
-                    .replace(/\/?[^\/]*/g, function (p) {
-                    if (p === "/..") {
-                        output.pop();
-                    } else {
-                        output.push(p);
-                    }
-                    });
-                pathname = head + output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
-                return pathname;
-           }
-            
-            
            let url=_this.withNoCache(filename, nocache);
            
             var loadNextScript = function ()
@@ -370,10 +369,11 @@ class ScriptLoader {
             
        
             
-	   var oXmlHttp = new XMLHttpRequest();            
+	   var oXmlHttp = new XMLHttpRequest();          
+           
 	 	oXmlHttp.withCredentials = false;
 		oXmlHttp.responseType = 'text';
-                url=resolvePathname(url);
+  
 		oXmlHttp.open('GET', url, true);
 		oXmlHttp.onload = function () {
 
