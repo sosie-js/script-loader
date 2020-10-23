@@ -19,7 +19,7 @@
 *    2.3.0 (01.10.2020) - nocache can be forced locally using # such as {'#user/plugin@version':[...]}
 *    3.0.0 (04.10.2020) - currentScript and resolvePathname support
 *    3.1.0 (15.10.2020) - getAbsoluteFilepath to fix resolvePathname exception for string starting with ../
-*    3.2.0 (23.10.2020) - package version
+*    3.2.0 (23.10.2020) - package version and anti cache works (before not)
 **/
 
 var parseGithubUrl = require('parse-github-url');
@@ -367,14 +367,29 @@ class ScriptLoader {
                 }
             };
             
+            /*
+              // Prevent caching in IE, in particular IE11.
+      // See: https://support.microsoft.com/en-us/help/234067/how-to-prevent-caching-in-internet-explorer
+      setHeaders: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache'
+      }
+    })
+             */
        
             
 	   var oXmlHttp = new XMLHttpRequest();            
 	 	oXmlHttp.withCredentials = false;
 		oXmlHttp.responseType = 'text';
                 url=resolvePathname(url);
-		oXmlHttp.open('GET', url, true);
-		oXmlHttp.onload = function () {
+                if(nocache) {
+                  //According to this article, post request are not cached
+                  //http://www.itgeared.com/articles/1401-ajax-browser-cache-issues-fix/
+                  oXmlHttp.open('POST', url, true);
+                }else {
+                  oXmlHttp.open('GET', url, true);
+                }
+                oXmlHttp.onload = function () {
 
 		  if( oXmlHttp.status >= 200 || oXmlHttp.status == XMLHttpRequest.DONE ) {
 
