@@ -67,7 +67,7 @@ module.exports = (env, argv) => {
       }),
 
       new webpack.BannerPlugin({
-        banner: `scriptloader plugin\n\n@version ${VERSION}\n\n@licence MIT\n@author SoSIE <https://sosie.sos-productions.com>`,
+        banner: `scriptloader plugin\n\n@version ${VERSION}\n\n@package https://github.com/sosie-js/script-loader\n@licence MIT\n@author SoSIE <https://sosie.sos-productions.com>`,
       }),
      ],
     output: {
