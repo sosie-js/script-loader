@@ -1,6 +1,12 @@
-![](https://badgen.net/badge/SoS正/0.8.0/f2a) ![](https://badgen.net/badge/editor.js/v2.1.9/blue) ![](https://badgen.net/badge/plugin/v3.2.0/orange) 
+![](https://badgen.net/badge/SoS正/0.8.0/f2a) ![](https://badgen.net/badge/editor.js/v2.1.9/blue) ![](https://badgen.net/badge/plugin/v4.0.0/orange) 
 
 # scriptLoader Plugin to load Tools, Modules and Plugins of editor.js
+
+
+## What's new doc ?
+
+- Since 4.0.0, new load core, anti cache and version coherency works. This last one
+ will avoid us to have regression when manipulating submodules and providing examples
 
 ## Feature(s)
 
@@ -84,7 +90,7 @@ we will have:
         * Plugins
         */
          await loadPlugins([
-            {'sosie-js/script-loader@2.2.0': '[example/plugins/script-loader](https://github.com/sosie-js/script-loader)'}, //virtual , already loaded we keep a version trace here
+            {'sosie-js/script-loader@4.0.0': '[example/plugins/script-loader](https://github.com/sosie-js/script-loader)'}, //virtual , already loaded we keep a version trace here
             {'sosie-js/embed@2.0.0': ['[example/plugins/embed](https://github.com/sosie-js/embed)',['dist/bundle.js','dist/sample.js']]},
             {'sosie-js/tool-configurator@1.0.0':['[example/plugins/tool-configurator](https://github.com/sosie-js/tool-configurator)','dist/bundle.js']}
         ],nocache,mode,target);

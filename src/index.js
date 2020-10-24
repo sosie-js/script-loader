@@ -1,12 +1,12 @@
 /*!
 * Dynamic script Loader for js and css files 
 *
-* @version 3.2.0
+* @version 4.0.0
 * @package https://github.com/sosie-js/script-loader
 */
 
 /**
-* @Note adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
+* @Note Adapted from https://stackoverflow.com/questions/14521108/dynamically-load-js-inside-js
 * @author sos-productions.com
 * @example await loadScripts([ "foo.js",'bar.css",...])
 * @history
@@ -20,6 +20,7 @@
 *    3.0.0 (04.10.2020) - currentScript and resolvePathname support
 *    3.1.0 (15.10.2020) - getAbsoluteFilepath to fix resolvePathname exception for string starting with ../
 *    3.2.0 (23.10.2020) - package version and anti cache works (before not)
+*    4.0.0 (24.10.2020) - new core with fetchText and..source coherency works!
 **/
 
 var parseGithubUrl = require('parse-github-url');
@@ -156,7 +157,7 @@ global.loadPlugins = function(plugins, nocache, mode, target) {
  * @param {string}  mode - dev or prod
  * @param {string}  target - local or remote/origin
 */
- global.loadEditor = function(modules,nocache,mode, target) {
+ global.loadEditor = function(modules, nocache, mode, target) {
      
     let sources= []
     let type='editor'
@@ -173,13 +174,16 @@ global.loadPlugins = function(plugins, nocache, mode, target) {
  * @param {boolean} nocache , if true activate the anti-cache system, disabled by default
  * @param {string}  mode - dev or prod
  **/
-global.loadScripts = function(scripts,nocache,mode) {
-    const sl = new ScriptLoader(scripts,nocache,mode);
+global.loadScripts = function (scripts, nocache, mode) {
+    const sl = new ScriptLoader(scripts, nocache, mode);
     return sl.load(undefined);
 
 }
 
-
+global.getFileContent = function (url) {
+   const sl = new ScriptLoader();
+  return sl.getFileContent(url);
+}
 
 var ScriptLoaderErrors;
 var ScriptLoaderInfo;    
@@ -287,58 +291,107 @@ class ScriptLoader {
         }
         
 
- 
-
-
-
+     /**
+      * Feature test
+      * 
+      * @return {Boolean} If true, required methods and APIs are supported
+      */
+      supports() {
+              return 'XMLHttpRequest' in window && 'JSON' in window && 'Promise' in window;
+      } 
         
-    /**
-     * Load as the js file by its index
-     * 
-     * @param {integer} i, the index in the list of filenames
-     * */
-       loadScript(i)
-        {
-          /* 
-           *!NOTE THIS DOES NOT PRODUCE ERROR when 404 html error pages
-           * var script = document.createElement('script');
-            var _this=this;
-            script.type = 'text/javascript';
-            script.src = _this.withNoCache(_this.m_js_files[i]);
-            var loadNextScript = function ()
-            {
-                if (i + 1 < _this.m_js_files.length)
-                {
-                    _this.loadScript(i + 1);
-                }
+     /**   
+      * fetch content by url
+      * 
+      * @param {String} url - the url of the file to fetch content
+      * @param {boolean} nocache - true to disable caching
+      * @param {function} onreadystatechange - custom handler
+      * @returns {Promise}
+      */
+     fetchText(url, nocache, onreadystatechange, options ) {
+          
+          // Check browser support
+          if (!this.supports()) throw 'script-loader: This browser does not support the methods used in this plugin.';
+
+          // Default settings
+          var settings, defaults = {
+            method: 'GET',
+            username: null,
+            password: null,
+            data: {},
+            responseType: 'text',
+            timeout: null,
+            withCredentials: false
+          };
+          
+         
+
+          /**
+	 * Merge two or more objects together.
+	 * @param   {Object}   objects  The objects to merge together
+	 * @returns {Object}            Merged values of defaults and options
+	 */
+	var extend = function () {
+
+		// Variables
+		var extended = {};
+
+		// Merge the object into the extended object
+		var merge = function (obj) {
+			for (var prop in obj) {
+				if (obj.hasOwnProperty(prop)) {
+					if (Object.prototype.toString.call(obj[prop]) === '[object Object]') {
+						extended[prop] = extend(extended[prop], obj[prop]);
+					} else {
+						extended[prop] = obj[prop];
+					}
+				}
+			}
+		};
+
+		// Loop through each object and conduct a merge
+		for (var i = 0; i < arguments.length; i++) {
+			var obj = arguments[i];
+			merge(obj);
+		}
+
+		return extended;
+
+	};
+          
+         // Merge options into defaults
+          settings = extend(defaults, options || {});
+        
+          if(nocache) {
+            /*
+              http://www.itgeared.com/articles/1401-ajax-browser-cache-issues-fix/ 
+             // See: https://support.microsoft.com/en-us/help/234067/how-to-prevent-caching-in-internet-explorer
+            setHeaders: {
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache'
+            }*/
+           options={
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': 'Sat, 14 Jan 2012 01:00:00 GMT'
+              }
             };
-            script.onload = function ()
-            {
-                //ScriptLoader.log('Loaded script "' + _this.m_js_files[i] + '".');
-                _this.count=_this.count-1;
-                loadNextScript();
-            };
-            script.onerror = function ()
-            {
-                ScriptLoader.error('Error loading script "' + _this.m_js_files[i] + '".');
-                loadNextScript();
-            };
-            //_this.log('Loading script "' + _this.m_js_files[i] + '".');
-            _this.m_head.appendChild(script);*/
-          var _this=this;
-           let fileentry=_this.m_js_files[i];
-           
-            var filedef=fileentry.split(':');
-            var sourceindex=filedef[0];
-            var filename=filedef[1];
-           
-            let source, nocache=false;
-            if(_this.sources) {
-                 source=_this.sources[sourceindex]; 
-                 nocache=/^#/.test(source)
-            }
             
-            //Extracted from https://gist.github.com/Yaffle/1088850
+            // adjust settings
+            settings = extend(settings,options);
+            
+          } else {
+           /* options={
+                headers: {
+                'Content-type': 'application/x-www-form-urlencoded'
+              }
+            };*/
+          }
+
+          var oXmlHttp = new XMLHttpRequest();            
+         
+           //Extracted from https://gist.github.com/Yaffle/1088850
             //maybe https://github.com/webcomponents/polyfills/blob/master/packages/url/url.js
            function resolvePathname(pathname) {
                 var output = [];
@@ -355,9 +408,137 @@ class ScriptLoader {
                 pathname = output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
                 return pathname;
            }
+          
+          url=resolvePathname(url);
+          
+          /**
+           * Promisify this with improvements using wonderful article 
+           * of https://gomakethings.com/promise-based-xhr/
+           * based on https://github.com/cferdinandi/atomic/blob/master/src/js/atomic/atomic.js
+           * 
+          oXmlHttp.onload = onload;
+          oXmlHttp.onreadystatechange = onreadystatechange
+          XmlHttp.open(method, url, true);
+          oXmlHttp.send();
+          */
+	return new Promise(function (resolve, reject) {
+
+                oXmlHttp.onload = function () {
+          
+                   if( this.status >= 200 || this.status == XMLHttpRequest.DONE ) {
+                     if(settings.responseType == 'text') {
+                       if(this.responseText !== null) {
+                            resolve(oXmlHttp);
+                       }else {
+                            reject({
+                                    status: 204,
+                                    statusText: 'No content'
+                            });
+                       }
+                     }
+                   }
+                }
+          
+		// Setup our listener to process compeleted requests
+		oXmlHttp.onreadystatechange = onreadystatechange || function () {
+
+			// Only run if the request is complete
+			if (oXmlHttp.readyState !== 4) return;
+                           
+			// Process the response
+			if (oXmlHttp.status >= 200 && oXmlHttp.status < 400) {
+				// If successful
+				resolve(oXmlHttp);
+			} else {
+				// If failed
+				reject({
+					status: oXmlHttp.status,
+					statusText: oXmlHttp.statusText
+				});
+			}
+
+		};
+
+                // Setup our HTTP request
+                oXmlHttp.open(settings.method, url, true, settings.username, settings.password);
+                oXmlHttp.responseType = settings.responseType;
+                
+                // Add headers
+                for (var header in settings.headers) {
+                        if (settings.headers.hasOwnProperty(header)) {
+                                oXmlHttp.setRequestHeader(header, settings.headers[header]);
+                        }
+                }
+
+                // Set timeout
+                if (settings.timeout) {
+                        oXmlHttp.timeout = settings.timeout;
+                        oXmlHttp.ontimeout = function (e) {
+                                reject({
+                                        status: 408,
+                                        statusText: 'Request timeout'
+                                });
+                        };
+                }
+
+                // Add withCredentials
+                if (settings.withCredentials) {
+                        oXmlHttp.withCredentials = true;
+                }
+                
+		// Send the request
+		oXmlHttp.send();
+
+	});
+  
+     }
+
+     
+    /**
+     * Get the text file content by url
+     * 
+     *@note if no url, given, return the code of the page, this is better than other techniques such as new * new XMLSerializer().serializeToString(document) washes comments but this one asynchronous not 
+     *    
+     *@param {String} url - the url 
+     *@param {function} handler - a function triggred on success like
+     *@   function (request) { 
+     *     // resolve
+     *     content = request.responseText;
+     *     return content ;
+     *     }
+     **/
+     getFileContent(url,handler) {
+        url = url || window.location.href;
+        var _this=this;
+        const fetchResponse=(async function() { var d=await _this.fetchText(url, false);return d})();
+        fetchResponse.then(handler).catch(function (error) { //reject
+            console.error('getFileContent ERROR :'+ error);
+        });
+     }
+        
+    /**
+     * Load as the js file by its index
+     * 
+     * @param {integer} i, the index in the list of filenames
+     * */
+       loadScript(i)
+        {
+        
+           var _this=this;
+           let fileentry=_this.m_js_files[i];
+           
+            var filedef=fileentry.split(':');
+            var sourceindex=filedef[0];
+            var filename=filedef[1];
+           
+            let source, nocache=false;
+            if(_this.sources) {
+                 source=_this.sources[sourceindex]; 
+                 nocache=/^#/.test(source)
+            }
+            nocache=_this.nocache || nocache;
             
-            
-           let url=_this.withNoCache(filename, nocache);
+           let url=filename; //_this.withNoCache(filename, nocache); incompatible with post
            
             var loadNextScript = function ()
             {
@@ -367,78 +548,64 @@ class ScriptLoader {
                 }
             };
             
-            /*
-              // Prevent caching in IE, in particular IE11.
-      // See: https://support.microsoft.com/en-us/help/234067/how-to-prevent-caching-in-internet-explorer
-      setHeaders: {
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache'
-      }
-    })
-             */
-       
-            
-	   var oXmlHttp = new XMLHttpRequest();            
-	 	oXmlHttp.withCredentials = false;
-		oXmlHttp.responseType = 'text';
-                url=resolvePathname(url);
-                if(nocache) {
-                  //According to this article, post request are not cached
-                  //http://www.itgeared.com/articles/1401-ajax-browser-cache-issues-fix/
-                  oXmlHttp.open('POST', url, true);
-                }else {
-                  oXmlHttp.open('GET', url, true);
-                }
-                oXmlHttp.onload = function () {
-
-		  if( oXmlHttp.status >= 200 || oXmlHttp.status == XMLHttpRequest.DONE ) {
-
-		    //var x = oXmlHttp.getAllResponseHeaders();
-		    //console.log(x);
-
-		    if(oXmlHttp.responseText !== null) {
-
-		        var oHead = document.getElementsByTagName('HEAD').item(0);
-		        var oScript = document.createElement("script");
-		            oScript.language = "javascript";
-		            oScript.type = "text/javascript";
-		            oScript.defer = true;
-		            oScript.text = oXmlHttp.responseText.replace('${currentScript}',url);
-		            oHead.appendChild(oScript);
-                        _this.count=_this.count-1;
-                        loadNextScript();
-		    }
-
-		  } 
-
-		}
-
-		oXmlHttp.send();
-                oXmlHttp.onreadystatechange = function() {
-                    let source, branch;
-                    if(this.readyState == this.HEADERS_RECEIVED) {
-                        //404 triggers an html page seen as normal so we have to intercept it
-                        var contentType = oXmlHttp.getResponseHeader("Content-Type");
-                        //console.log(url,contentType);
-                        if (!(/^(application\/javascript)/.test(contentType))) { //charset=utf-8
-                           oXmlHttp.abort();
-                            ScriptLoader.error('Error loading '+_this.group+' file "' + url + '" ('+contentType+').')
-                            
-                            if(source) {
-                              //console.info();
-                                //source=_this.sources[sourceindex] //.replace(/^#/,"")
-                                if(/editor.js$/.test(source.base)) {
-                                    console.info('loadScript:To fix it, from editor.js do a "git submodule add '+branch+'-f '+source.repository+' src/editor.js" and then ./build and copy src/editor.js/dist/* under editor.js/dist/');
-                                } else {   
-                                    branch=(source.branch=='latest') ? '' : '-b '+source.branch+' ';
-                                    console.info('loadScript: To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
-                                }
+            this.fetchText(url,nocache,function onreadystatechange () {
+              
+                if(this.readyState == this.HEADERS_RECEIVED) {
+                    //404 triggers an html page seen as normal so we have to intercept it
+                    var contentType = this.getResponseHeader("Content-Type");
+                    //console.log(url,contentType);
+                    if (!(/^(application\/javascript)/.test(contentType))) { //charset=utf-8
+                        this.abort();
+                        ScriptLoader.error('Error loading '+_this.group+' file "' + url + '" ('+contentType+').')
+                        
+                        if(source) {
+                          //console.info();
+                            //source=_this.sources[sourceindex] //.replace(/^#/,"")
+                            if(/editor.js$/.test(source.base)) {
+                                console.info('loadScript:To fix it, from editor.js do a "git submodule add '+branch+'-f '+source.repository+' src/editor.js" and then ./build and copy src/editor.js/dist/* under editor.js/dist/');
+                            } else {   
+                                branch=(source.branch=='latest') ? '' : '-b '+source.branch+' ';
+                                console.info('loadScript: To fix it, from '+source.reloc+ ' do a "git submodule add '+branch+'-f '+source.repository+' '+source.base+'"')
                             }
-
-                            loadNextScript();
                         }
+
+                        loadNextScript();
                     }
-                }	    
+                }
+            }).then(function (request) { // resolve
+              
+              const code = request.responseText.replace('${currentScript}',url);
+              
+              // version coherency checking system
+              
+              if(source && /@version/.test(code)) {
+                const version=/@version\s+([\d\.\w]+)/.exec(code).slice(1);
+                if(version == source.branch) {
+                  console.info('Script package version "'+ version+'" matches source branch, this is very good'); 
+                } else {
+                  console.log('Script package version "'+ version + '" differs with source branch "' + source.branch + '", something may be twisted');
+                }
+              } else {
+                if(!/sample.js/.test(url)) {
+                  console.log('Script package has no @version information in source header, this is not recommended');
+                }
+              }
+              
+                var oHead = document.getElementsByTagName('HEAD').item(0);
+                var oScript = document.createElement("script");
+                    oScript.language = "javascript";
+                    oScript.type = "text/javascript";
+                    oScript.defer = true;
+                    oScript.text = code;
+                    oHead.appendChild(oScript);
+                _this.count=_this.count-1;
+                loadNextScript();
+                
+            })
+            .catch(function (error) { //reject
+                console.error(error.status,error.statusText); 
+            });
+              
         }
         
         
