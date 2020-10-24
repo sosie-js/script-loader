@@ -10,7 +10,11 @@
 
 ## Feature(s)
 
-Provides an uniformized way to load tool and scripts thus instead of having:
+- Submodules version coherency checker in console
+
+ ![](coherency-checker.png) 
+
+- Provides an uniformized way to load tool and scripts thus instead of having:
 
 ```html
 
