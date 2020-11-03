@@ -1,6 +1,6 @@
 {
   "name": "@sosie-js/script-loader",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "keywords": [
     "script loader",
     "script",
@@ -25,6 +25,7 @@
     "@babel/core": "^7.10.2",
     "@babel/preset-env": "^7.10.2",
     "babel-loader": "^8.1.0",
+    "chalk": "^4.1.0",
     "css-loader": "^3.5.3",
     "postcss-loader": "^3.0.0",
     "postcss-nested": "^4.2.1",

@@ -1,7 +1,7 @@
 /*!
 * Dynamic script Loader for js and css files 
 *
-* @version 4.0.0
+* @version 4.1.0
 * @package https://github.com/sosie-js/script-loader
 */
 
@@ -21,9 +21,12 @@
 *    3.1.0 (15.10.2020) - getAbsoluteFilepath to fix resolvePathname exception for string starting with ../
 *    3.2.0 (23.10.2020) - package version and anti cache works (before not)
 *    4.0.0 (24.10.2020) - new core with fetchText and..source coherency works!
+*    4.1.0 (03.11.2020) - resolvePathname is now common for js and css files
 **/
 
 var parseGithubUrl = require('parse-github-url');
+const chalk = require('chalk');
+const log = console.log;
 
 const SCRIPT_LOADER_MAXTIME=9000; //in ms
 
@@ -264,6 +267,8 @@ class ScriptLoader {
             var filedef=fileentry.split(':');
             var sourceindex=filedef[0];
             var filename=filedef[1];
+            
+            filename=this.resolvePathname(filename);
             //console.log('LoadStyle('+sourceindex+'):'+fileentry);
             link.href = _this.withNoCache(filename);
             //ScriptLoader.log('Loading style ' + filename);
@@ -391,26 +396,7 @@ class ScriptLoader {
 
           var oXmlHttp = new XMLHttpRequest();            
          
-           //Extracted from https://gist.github.com/Yaffle/1088850
-            //maybe https://github.com/webcomponents/polyfills/blob/master/packages/url/url.js
-           function resolvePathname(pathname) {
-                var output = [];
-                pathname.replace(/^(\.\.?(\/|$))+/, "")
-                    .replace(/\/(\.(\/|$))+/g, "/")
-                    .replace(/\/\.\.$/, "/../")
-                    .replace(/\/?[^\/]*/g, function (p) {
-                    if (p === "/..") {
-                        output.pop();
-                    } else {
-                        output.push(p);
-                    }
-                    });
-                pathname = output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
-                return pathname;
-           }
-          
-          url=resolvePathname(url);
-          
+        
           /**
            * Promisify this with improvements using wonderful article 
            * of https://gomakethings.com/promise-based-xhr/
@@ -494,6 +480,25 @@ class ScriptLoader {
      }
 
      
+        //Extracted from https://gist.github.com/Yaffle/1088850
+      //maybe https://github.com/webcomponents/polyfills/blob/master/packages/url/url.js
+      resolvePathname(pathname) {
+          var output = [];
+          pathname.replace(/^(\.\.?(\/|$))+/, "")
+              .replace(/\/(\.(\/|$))+/g, "/")
+              .replace(/\/\.\.$/, "/../")
+              .replace(/\/?[^\/]*/g, function (p) {
+              if (p === "/..") {
+                  output.pop();
+              } else {
+                  output.push(p);
+              }
+              });
+          pathname = output.join("").replace(/^\//, pathname.charAt(0) === "/" ? "/" : "");
+          return pathname;
+      }
+     
+     
     /**
      * Get the text file content by url
      * 
@@ -510,12 +515,14 @@ class ScriptLoader {
      getFileContent(url,handler) {
         url = url || window.location.href;
         var _this=this;
-        const fetchResponse=(async function() { var d=await _this.fetchText(url, false);return d})();
+        const fetchResponse=(async function() { var d=await _this.fetchText(this.resolvePathname(url), false);return d})();
         fetchResponse.then(handler).catch(function (error) { //reject
             console.error('getFileContent ERROR :'+ error);
         });
      }
-        
+   
+  
+          
     /**
      * Load as the js file by its index
      * 
@@ -548,6 +555,9 @@ class ScriptLoader {
                 }
             };
             
+            
+            url=this.resolvePathname(url);
+            
             this.fetchText(url,nocache,function onreadystatechange () {
               
                 if(this.readyState == this.HEADERS_RECEIVED) {
@@ -577,18 +587,28 @@ class ScriptLoader {
               const code = request.responseText.replace('${currentScript}',url);
               
               // version coherency checking system
+              function check_match(source, code) {
+                const version=/@version\s+([\d\.\w]+)/.exec(code).slice(1)[0];
+                if(version == source.branch) {
+                  console.info('Script ' + source.base + ' package version "'+ version+'" matches source branch, this is very good'); 
+                } else {
+                  console.log('Script ' + source.base + ' package version "'+ version + '" differs with source branch "' + source.branch + '", something may be twisted');
+                }
+              }
               
               if(source && /@version/.test(code)) {
-                const version=/@version\s+([\d\.\w]+)/.exec(code).slice(1);
-                if(version == source.branch) {
-                  console.info('Script package version "'+ version+'" matches source branch, this is very good'); 
-                } else {
-                  console.log('Script package version "'+ version + '" differs with source branch "' + source.branch + '", something may be twisted');
-                }
-              } else {
-                if(!/sample.js/.test(url)) {
-                  console.log('Script package has no @version information in source header, this is not recommended');
-                }
+                check_match(source, code);
+              } else if (( source.repository == 'https://github.com/codex-team/editor.js' ) && (/editor.js.LICENSE.txt/.test(code))){
+                
+                 var xhr = new XMLHttpRequest();
+                 xhr.open("GET", url.replace('dist/editor.js','dist/editor.js.LICENSE.txt'), false);
+                 xhr.send('');
+                 
+                 var versions=(xhr.responseText+'').match(/@version\s+([\d\.\w]+)/g);
+                 check_match(source, versions[1]);
+                
+              } else if(!/sample.js/.test(url)) {
+                  console.log(chalk.bold.rgb(10, 100, 200)('Script package "' + source.base + '" ('+source.repository+') has no @version information in source header, this is not recommended for '+url));
               }
               
                 var oHead = document.getElementsByTagName('HEAD').item(0);

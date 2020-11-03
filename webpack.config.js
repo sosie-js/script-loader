@@ -27,7 +27,7 @@ module.exports = (env, argv) => {
 
 
     return  {
-    entry: [ 'babel-polyfill', 'parse-github-url', './src/index.js'],
+    entry: [ 'babel-polyfill', 'chalk', 'parse-github-url', './src/index.js'],
     module: {
         rules: [
         {
