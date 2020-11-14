@@ -25,8 +25,6 @@
 **/
 
 var parseGithubUrl = require('parse-github-url');
-const chalk = require('chalk');
-const log = console.log;
 
 const SCRIPT_LOADER_MAXTIME=9000; //in ms
 
@@ -582,7 +580,7 @@ class ScriptLoader {
                         loadNextScript();
                     }
                 }
-            }).then(function (request) { // resolve
+            }).then(function (request) { // resolve content
               
               const code = request.responseText.replace('${currentScript}',url);
               
@@ -590,25 +588,34 @@ class ScriptLoader {
               function check_match(source, code) {
                 const version=/@version\s+([\d\.\w]+)/.exec(code).slice(1)[0];
                 if(version == source.branch) {
-                  console.info('Script ' + source.base + ' package version "'+ version+'" matches source branch, this is very good'); 
+                  console.info('%c Script ' + source.base + ' package version "'+ version+'" matches source branch, this is very good', 'background:#a4ffb9;'); 
                 } else {
-                  console.log('Script ' + source.base + ' package version "'+ version + '" differs with source branch "' + source.branch + '", something may be twisted');
+                  console.log('%c Script ' + source.base + ' package version "'+ version + '" differs with source branch "' + source.branch + '", something may be twisted','background:#fdd7d7;');
                 }
               }
-              
+              const licenseReg=/\/\*! For license information please see ([\w\.]+.LICENSE.txt) \*\//;
+            
               if(source && /@version/.test(code)) {
                 check_match(source, code);
-              } else if (( source.repository == 'https://github.com/codex-team/editor.js' ) && (/editor.js.LICENSE.txt/.test(code))){
+              } else if (licenseReg.test(code)) {
                 
+                const license=licenseReg.exec(code).slice(1)[0];
+       
                  var xhr = new XMLHttpRequest();
-                 xhr.open("GET", url.replace('dist/editor.js','dist/editor.js.LICENSE.txt'), false);
+                 xhr.open("GET", url.split('dist/')[0]+'dist/'+license, false);
                  xhr.send('');
                  
                  var versions=(xhr.responseText+'').match(/@version\s+([\d\.\w]+)/g);
-                 check_match(source, versions[1]);
-                
+                 //console.log(" V ",versions);
+                 
+                 // Normally this should not be needed..handles https://github.com/codex-team/editor.js/issues/1409
+                 if (( source.repository == 'https://github.com/codex-team/editor.js' ) && (license == 'editor.js.LICENSE.txt')) {
+                    check_match(source, versions[1]);
+                 } else {
+                    check_match(source, versions[0]);
+                 }
               } else if(!/sample.js/.test(url)) {
-                  console.log(chalk.bold.rgb(10, 100, 200)('Script package "' + source.base + '" ('+source.repository+') has no @version information in source header, this is not recommended for '+url));
+                  console.log('%c Script package "' + source.base + '" ('+source.repository+') has no @version information in source header, this is not recommended for '+url,'background: #fffbd6;');
               }
               
                 var oHead = document.getElementsByTagName('HEAD').item(0);
